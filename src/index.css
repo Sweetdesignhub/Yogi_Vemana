@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --font-montserrat: "Montserrat";
+  --font-roboto: "Roboto";
+}
+
+.gradient-active,
+.gradient-hover:hover {
+  background: linear-gradient(95.28deg, #fff83a 22.36%, #0066ff 115.02%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
