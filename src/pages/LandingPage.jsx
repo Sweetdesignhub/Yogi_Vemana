@@ -1,6 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { MdOutlineArrowOutward } from "react-icons/md";
 import LandingPageBg from "../assets/LandingPageBg.png";
+import vemanaImg from "../assets/vemana.png";
+import potraitImg from "../assets/potrait.png";
+import avatarsImg from "../assets/avatars.png";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -187,7 +190,7 @@ export default function LandingPage() {
                 <div className="col-span-4 col-start-8 row-span-4 row-start-8 rounded-3xl overflow-hidden relative">
                   <img
                     className="absolute left-0 top-0 w-full h-full object-cover"
-                    src="/src/assets/vemana.png"
+                    src={vemanaImg}
                     alt="Yogi Vemana"
                   />
                   <div
@@ -220,7 +223,7 @@ export default function LandingPage() {
                     </h3>
                     <div className="flex items-center gap-3">
                       <img
-                        src="/src/assets/avatars.png"
+                        src={avatarsImg}
                         alt="User Avatars"
                         className="flex-shrink-0"
                         style={{ height: "clamp(1.5rem, 2.5vw, 2rem)" }}
@@ -411,11 +414,7 @@ export default function LandingPage() {
                   See Wisdom. Hear Wisdom. Live Wisdom.
                 </h3>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <img
-                    src="/src/assets/avatars.png"
-                    alt="User Avatars"
-                    className="h-10"
-                  />
+                  <img src={avatarsImg} alt="User Avatars" className="h-10" />
                   <p
                     className="text-white font-medium leading-snug"
                     style={{
@@ -433,7 +432,7 @@ export default function LandingPage() {
               <div
                 className="absolute inset-0 bg-cover bg-center"
                 style={{
-                  backgroundImage: "url(/src/assets/potrait.png)",
+                  backgroundImage: `url(${potraitImg})`,
                 }}
               />
               <div
