@@ -58,6 +58,7 @@ export default function Chat() {
   const hasReceivedSpeechRef = useRef(false); // Track if we've received any speech
   const currentInputRef = useRef(""); // Store current input text
 
+  console.log("Speech Key:", import.meta.env.VITE_AZURE_SPEECH_KEY);
   // Azure Speech Service configuration
   const SPEECH_KEY = import.meta.env.VITE_AZURE_SPEECH_KEY;
   const SPEECH_REGION = "southeastasia";

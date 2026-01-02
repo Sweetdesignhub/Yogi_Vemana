@@ -125,7 +125,7 @@ export default function LandingPage() {
                   <div
                     className="absolute inset-0 bg-cover bg-center"
                     style={{
-                      backgroundImage: "url(/src/assets/potrait.png)",
+                      backgroundImage: `url(${potraitImg})`,
                     }}
                   />
                   <div
