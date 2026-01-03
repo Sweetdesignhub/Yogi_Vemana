@@ -1,12 +1,48 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MdOutlineArrowOutward } from "react-icons/md";
 import LandingPageBg from "../assets/LandingPageBg.png";
 import vemanaImg from "../assets/vemana.png";
 import potraitImg from "../assets/potrait.png";
 import avatarsImg from "../assets/avatars.png";
+import LoadingScreen from "../components/LoadingScreen"; // Import the loading component
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Preload all images
+    const imagesToLoad = [LandingPageBg, vemanaImg, potraitImg, avatarsImg];
+
+    let loadedCount = 0;
+    const totalImages = imagesToLoad.length;
+
+    const imageLoadPromises = imagesToLoad.map((src) => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          loadedCount++;
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = src;
+      });
+    });
+
+    Promise.all(imageLoadPromises)
+      .then(() => {
+        // Add a small delay to ensure smooth transition
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+      })
+      .catch((error) => {
+        console.error("Error loading images:", error);
+        // Still show the page even if some images fail
+        setIsLoading(false);
+      });
+  }, []);
 
   const handleStartChat = (initialQuery = null) => {
     if (initialQuery) {
@@ -15,6 +51,11 @@ export default function LandingPage() {
       navigate("/chat");
     }
   };
+
+  // Show loading screen while images are loading
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="w-screen h-screen overflow-hidden">
@@ -380,7 +421,7 @@ export default function LandingPage() {
               />
               <img
                 className="absolute left-0 top-0 w-full h-full object-cover"
-                src="/src/assets/vemana.png"
+                src={vemanaImg}
                 alt="Yogi Vemana"
               />
               <div className="absolute inset-0 flex items-center justify-end pr-6">

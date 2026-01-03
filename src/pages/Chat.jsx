@@ -32,6 +32,7 @@ import remarkGfm from "remark-gfm";
 import { PiSpeakerSimpleHighBold, PiSpeakerSlashBold } from "react-icons/pi";
 import ChatBg from "../assets/chat_bg.png";
 import BgVideo from "../assets/bg_video.mp4";
+import LoadingScreen from "../components/LoadingScreen";
 
 export default function Chat() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -41,6 +42,7 @@ export default function Chat() {
   const [isRecording, setIsRecording] = useState(false);
   const [speakingMessageIndex, setSpeakingMessageIndex] = useState(null);
   const [detectedLanguage, setDetectedLanguage] = useState(null);
+  const [isPageLoading, setIsPageLoading] = useState(true);
 
   const navigate = useNavigate();
 
@@ -54,9 +56,9 @@ export default function Chat() {
 
   // Silence detection timer
   const silenceTimerRef = useRef(null);
-  const SILENCE_DURATION = 1500; // 1.5 seconds of silence before auto-submit
-  const hasReceivedSpeechRef = useRef(false); // Track if we've received any speech
-  const currentInputRef = useRef(""); // Store current input text
+  const SILENCE_DURATION = 1500;
+  const hasReceivedSpeechRef = useRef(false);
+  const currentInputRef = useRef("");
 
   // Azure Speech Service configuration
   const SPEECH_KEY = import.meta.env.VITE_AZURE_SPEECH_KEY;
@@ -69,18 +71,57 @@ export default function Chat() {
   const audioPlayerRef = useRef(null);
 
   useEffect(() => {
+    // Preload all images
+    const imagesToLoad = [
+      ChatBg,
+      TodaysLearning,
+      EgoPride,
+      WealthDesire,
+      RitualReality,
+      LifeDeath,
+      SimpleLiving,
+      TruthLies,
+      Poem,
+      YogiVemana,
+    ];
+
+    let loadedCount = 0;
+    const totalImages = imagesToLoad.length;
+
+    const imageLoadPromises = imagesToLoad.map((src) => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          loadedCount++;
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = src;
+      });
+    });
+
+    Promise.all(imageLoadPromises)
+      .then(() => {
+        setTimeout(() => {
+          setIsPageLoading(false);
+        }, 500);
+      })
+      .catch((error) => {
+        console.error("Error loading images:", error);
+        setIsPageLoading(false);
+      });
+
+    // Initialize speech config
     speechConfigRef.current = sdk.SpeechConfig.fromSubscription(
       SPEECH_KEY,
       SPEECH_REGION
     );
 
-    // Enable continuous language detection
     speechConfigRef.current.setProperty(
       sdk.PropertyId.SpeechServiceConnection_LanguageIdMode,
       "Continuous"
     );
 
-    // Default TTS voice (will be overridden dynamically)
     speechConfigRef.current.speechSynthesisVoiceName = "te-IN-MohanNeural";
 
     return () => {
@@ -106,12 +147,10 @@ export default function Chat() {
       clearTimeout(silenceTimerRef.current);
     }
 
-    // Only set timer if we have received speech
     if (!hasReceivedSpeechRef.current) {
       return;
     }
 
-    // Set a new timer to auto-submit after silence
     silenceTimerRef.current = setTimeout(() => {
       const currentInput = currentInputRef.current.trim();
       console.log("Silence detected. Current input:", currentInput);
@@ -120,7 +159,6 @@ export default function Chat() {
       if (currentInput && speechRecognizerRef.current) {
         console.log("Auto-submitting message...");
 
-        // Stop recording first
         speechRecognizerRef.current.stopContinuousRecognitionAsync(
           () => {
             console.log("Recording stopped for auto-submit");
@@ -129,17 +167,14 @@ export default function Chat() {
             speechRecognizerRef.current = null;
             hasReceivedSpeechRef.current = false;
 
-            // Submit the message with the captured text
             const messageToSend = currentInputRef.current.trim();
             if (messageToSend) {
               setUserInput("");
               currentInputRef.current = "";
 
-              // Replace chat history with new user message
               setChatHistory([{ type: "user", text: messageToSend }]);
               setIsLoading(true);
 
-              // Send to API
               fetch("https://chatbot.stockgenius.ai/chat", {
                 method: "POST",
                 headers: {
@@ -152,13 +187,11 @@ export default function Chat() {
               })
                 .then((response) => response.json())
                 .then((data) => {
-                  // Replace with user message and bot response
                   setChatHistory([
                     { type: "user", text: messageToSend },
                     { type: "bot", text: data.response },
                   ]);
 
-                  // Bot message is always at index 1 now
                   speakText(data.response, 1);
                 })
                 .catch((error) => {
@@ -196,9 +229,8 @@ export default function Chat() {
     try {
       const audioConfig = sdk.AudioConfig.fromDefaultMicrophoneInput();
 
-      // 🔹 Enable auto language detection with both English and Telugu
       const autoDetectConfig = sdk.AutoDetectSourceLanguageConfig.fromLanguages(
-        ["en-US", "te-IN", "en-IN"] // Added en-IN for Indian English
+        ["en-US", "te-IN", "en-IN"]
       );
 
       speechRecognizerRef.current = sdk.SpeechRecognizer.FromConfig(
@@ -208,9 +240,9 @@ export default function Chat() {
       );
 
       setIsRecording(true);
-      setUserInput(""); // 🔥 Clear previous input when starting new recording
-      hasReceivedSpeechRef.current = false; // Reset speech tracking
-      currentInputRef.current = ""; // Reset input ref
+      setUserInput("");
+      hasReceivedSpeechRef.current = false;
+      currentInputRef.current = "";
 
       speechRecognizerRef.current.recognized = (s, e) => {
         if (e.result.reason === sdk.ResultReason.RecognizedSpeech) {
@@ -223,13 +255,10 @@ export default function Chat() {
           console.log("Detected language:", language);
           console.log("Recognized text:", recognizedText);
 
-          // Mark that we've received speech
           hasReceivedSpeechRef.current = true;
 
-          // 🔥 Update detected language for TTS
           setDetectedLanguage(language);
 
-          // 🔥 Update both state and ref
           const newText = currentInputRef.current + " " + recognizedText;
           const trimmedText = newText.trim();
           currentInputRef.current = trimmedText;
@@ -237,22 +266,18 @@ export default function Chat() {
 
           console.log("Updated input:", trimmedText);
 
-          // Reset the silence timer since we just detected speech
           resetSilenceTimer();
         }
       };
 
-      // Handle when speech starts (recognizing event)
       speechRecognizerRef.current.recognizing = (s, e) => {
         if (e.result.text) {
-          // Reset timer when user is actively speaking
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
           }
         }
       };
 
-      // 🔹 Handle recognition errors
       speechRecognizerRef.current.canceled = (s, e) => {
         console.error("Recognition canceled:", e.reason);
         if (e.reason === sdk.CancellationReason.Error) {
@@ -284,7 +309,6 @@ export default function Chat() {
 
   // Stop Azure Speech Recognition
   const stopRecording = () => {
-    // Clear any pending silence timer
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
@@ -316,17 +340,14 @@ export default function Chat() {
       return;
     }
 
-    // If already speaking this message, stop it
     if (speakingMessageIndex === messageIndex) {
       stopSpeaking();
       return;
     }
 
-    // Stop any current speech before starting new one
     stopSpeaking();
 
     try {
-      // Use detected language voice or default to Telugu
       const selectedVoice =
         detectedLanguage && VOICE_MAP[detectedLanguage]
           ? VOICE_MAP[detectedLanguage]
@@ -334,15 +355,13 @@ export default function Chat() {
 
       speechConfigRef.current.speechSynthesisVoiceName = selectedVoice;
 
-      // Create synthesizer with null audio config to get audio data
       speechSynthesizerRef.current = new sdk.SpeechSynthesizer(
         speechConfigRef.current,
-        null // null audio config means we'll handle playback ourselves
+        null
       );
 
       setSpeakingMessageIndex(messageIndex);
 
-      // Wrap text in SSML to slow down the speech
       const ssml = `
       <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${
         detectedLanguage || "te-IN"
@@ -359,14 +378,12 @@ export default function Chat() {
         ssml,
         (result) => {
           if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-            // Create audio element for playback
             const audioData = result.audioData;
             const blob = new Blob([audioData], { type: "audio/wav" });
             const url = URL.createObjectURL(blob);
 
             audioPlayerRef.current = new Audio(url);
 
-            // Handle audio end
             audioPlayerRef.current.onended = () => {
               setSpeakingMessageIndex(null);
               URL.revokeObjectURL(url);
@@ -376,7 +393,6 @@ export default function Chat() {
               }
             };
 
-            // Handle audio errors
             audioPlayerRef.current.onerror = (error) => {
               console.error("Audio playback error:", error);
               setSpeakingMessageIndex(null);
@@ -387,7 +403,6 @@ export default function Chat() {
               }
             };
 
-            // Play the audio
             audioPlayerRef.current.play().catch((error) => {
               console.error("Error playing audio:", error);
               setSpeakingMessageIndex(null);
@@ -412,14 +427,12 @@ export default function Chat() {
 
   // Stop Azure Speech Synthesis
   const stopSpeaking = () => {
-    // Stop audio playback
     if (audioPlayerRef.current) {
       audioPlayerRef.current.pause();
       audioPlayerRef.current.currentTime = 0;
       audioPlayerRef.current = null;
     }
 
-    // Close synthesizer
     if (speechSynthesizerRef.current) {
       try {
         speechSynthesizerRef.current.close();
@@ -439,7 +452,6 @@ export default function Chat() {
     const userMessage = userInput.trim();
     setUserInput("");
 
-    // Replace chat history with new user message
     setChatHistory([{ type: "user", text: userMessage }]);
     setIsLoading(true);
 
@@ -457,14 +469,11 @@ export default function Chat() {
 
       const data = await response.json();
 
-      // Replace with user message and bot response
       setChatHistory([
         { type: "user", text: userMessage },
         { type: "bot", text: data.response },
       ]);
 
-      // Automatically speak the response using Azure TTS
-      // Bot message is always at index 1 now
       speakText(data.response, 1);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -533,6 +542,11 @@ export default function Chat() {
     "What did you teach about true happiness?",
     "How should one live a simple life today?",
   ];
+
+  // Show loading screen while images are loading
+  if (isPageLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div
@@ -809,7 +823,6 @@ export default function Chat() {
                             >
                               {message.text}
                             </ReactMarkdown>
-
                             <button
                               onClick={() => speakText(message.text, index)}
                               className="mt-2 text-xs text-gray-200 cursor-pointer hover:text-white flex items-center gap-1"
